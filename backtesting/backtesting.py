@@ -1,7 +1,9 @@
 """
 Core framework data structures.
+核心框架数据结构
 Objects from this module can also be imported from the top-level
 module directly, e.g.
+此模块中的对象也可以直接从顶层模块导入，如：
 
     from backtesting import Backtest, Strategy
 """
@@ -24,8 +26,15 @@ from numpy.random import default_rng
 
 try:
     from tqdm.auto import tqdm as _tqdm
-    _tqdm = partial(_tqdm, leave=False)
+    _tqdm = partial(_tqdm, leave=False) # leave=False 参数指示 tqdm 在过程完成后从输出中删除进度条
 except ImportError:
+    """
+    如果导入失败（可能是因为 tqdm 未安装），
+    则该 except 块定义了一个简单的函数，
+    该函数 _tqdm 仅返回给定的序列而不对其进行修改。
+    此函数被设计为具有相同的 tqdm 接口（它接受序列和关键字参数），
+    但不执行任何操作，从而防止在不可用时 tqdm 出现错误。
+    """
     def _tqdm(seq, **_):
         return seq
 
@@ -48,6 +57,10 @@ class Strategy(metaclass=ABCMeta):
     `backtesting.backtesting.Strategy.init` and
     `backtesting.backtesting.Strategy.next` to define
     your own strategy.
+    交易策略基类。继承这个类，并且覆写方法：
+    `backtesting.backtesting.Strategy.init` 和
+    `backtesting.backtesting.Strategy.next` 来定义
+    你自己的策略
     """
     def __init__(self, broker, data, params):
         self._indicators = []
@@ -85,32 +98,47 @@ class Strategy(metaclass=ABCMeta):
         `backtesting.backtesting.Strategy.next` much like
         `backtesting.backtesting.Strategy.data` is.
         Returns `np.ndarray` of indicator values.
+        声明一个 indicator（指标）。 indicator（指标）只是一个值数组，
+        但在“backtesting.backtesting.Strategy.next”中逐渐显示，
+        就像“backtesting.backtesting.Strategy.data”一样。返回一个indicator values的“np.ndarray”
 
         `func` is a function that returns the indicator array(s) of
         same length as `backtesting.backtesting.Strategy.data`.
+        'func' 是一个函数，它返回与 'backtesting.backtesting.Strategy.data' 长度相同的指标数组。
 
         In the plot legend, the indicator is labeled with
         function name, unless `name` overrides it.
+        在绘图图例中，indicator（指标）标有函数名称，除非“name”覆盖它。
 
         If `plot` is `True`, the indicator is plotted on the resulting
         `backtesting.backtesting.Backtest.plot`.
+        如果 'plot' 为 'True'，则 indicator（指标）绘制在
+        生成的 'backtesting.backtesting.Backtest.plot' 上。
 
         If `overlay` is `True`, the indicator is plotted overlaying the
         price candlestick chart (suitable e.g. for moving averages).
         If `False`, the indicator is plotted standalone below the
         candlestick chart. By default, a heuristic is used which decides
         correctly most of the time.
+        如果“overlay”为“True”，则指标将绘制在价格烛台图上（适用于移动平均线）。
+        如果为“False”，则指标在K线图下方独立绘制。
+        默认情况下，使用启发式方法，该方法在大多数情况下都能正确做出决定。
 
         `color` can be string hex RGB triplet or X11 color name.
         By default, the next available color is assigned.
+        “color”可以是字符串、十六进制、RGB 三元组或 X11 颜色名称。
+        默认情况下，将分配下一个可用颜色。
 
         If `scatter` is `True`, the plotted indicator marker will be a
         circle instead of a connected line segment (default).
+        如果 'scatter' 为 'True'，则绘制的指标标记将是一个圆圈，而不是连接的线段（默认值）。
 
         Additional `*args` and `**kwargs` are passed to `func` and can
         be used for parameters.
+        其他的 'args' 和 'kwargs' 被传递给 'func'，可用于参数。
 
         For example, using simple moving average function from TA-Lib:
+        例如，使用 TA-Lib 中的简单移动平均函数：
 
             def init():
                 self.sma = self.I(ta.SMA, self.data.Close, self.n_sma)
@@ -167,9 +195,14 @@ class Strategy(metaclass=ABCMeta):
         Declare indicators (with `backtesting.backtesting.Strategy.I`).
         Precompute what needs to be precomputed or can be precomputed
         in a vectorized fashion before the strategy starts.
+        初始化策略。
+        重写此方法。
+        声明指标（使用 'backtesting.backtesting.Strategy.I'）。
+        在策略开始之前，预先计算需要预先计算的内容，或者可以以矢量化方式预先计算的内容。
 
         If you extend composable strategies from `backtesting.lib`,
         make sure to call:
+        如果从 'backtesting.lib' 扩展可组合策略，请确保调用：
 
             super().init()
         """
@@ -183,9 +216,15 @@ class Strategy(metaclass=ABCMeta):
         This is the main method where strategy decisions
         upon data precomputed in `backtesting.backtesting.Strategy.init`
         take place.
+        主策略运行时方法，在每个新的
+        “backtesting.backtesting.Strategy.data”实例（行row;完整的烛台柱线bar）
+        可用时调用。
+        这是根据“backtesting.backtesting.Strategy.init”
+        中预先计算的数据进行策略决策的主要方法。
 
         If you extend composable strategies from `backtesting.lib`,
         make sure to call:
+        如果从 'backtesting.lib' 扩展可组合策略，请确保调用：
 
             super().next()
         """
@@ -203,10 +242,12 @@ class Strategy(metaclass=ABCMeta):
             tag: object = None):
         """
         Place a new long order. For explanation of parameters, see `Order` and its properties.
-
+        下新的多头订单。有关参数的说明，请参阅“Order”及其属性。
         See `Position.close()` and `Trade.close()` for closing existing positions.
+        请参阅“Position.close（）”和“Trade.close（）”以关闭现有头寸。
 
         See also `Strategy.sell()`.
+        参见 'Strategy.sell（）'。
         """
         assert 0 < size < 1 or round(size) == size, \
             "size must be a positive fraction of equity, or a positive whole number of units"
@@ -221,12 +262,15 @@ class Strategy(metaclass=ABCMeta):
              tag: object = None):
         """
         Place a new short order. For explanation of parameters, see `Order` and its properties.
+        下一个新的空头订单。有关参数的说明，请参阅“Order”及其属性。
 
         See also `Strategy.buy()`.
+        参见 'Strategy.buy（）'。
 
         .. note::
             If you merely want to close an existing long position,
             use `Position.close()` or `Trade.close()`.
+            注意： 如果您只想平仓现有的多头头寸，请使用“Position.close（）”或“Trade.close（）”。
         """
         assert 0 < size < 1 or round(size) == size, \
             "size must be a positive fraction of equity, or a positive whole number of units"
@@ -234,7 +278,10 @@ class Strategy(metaclass=ABCMeta):
 
     @property
     def equity(self) -> float:
-        """Current account equity (cash plus assets)."""
+        """
+        Current account equity (cash plus assets).
+        当前账户权益（现金加资产）
+        """
         return self._broker.equity
 
     @property
@@ -243,11 +290,19 @@ class Strategy(metaclass=ABCMeta):
         Price data, roughly as passed into
         `backtesting.backtesting.Backtest.__init__`,
         but with two significant exceptions:
+        价格数据，大致与“backtesting.backtesting.Backtest.__init__”相同，
+        但有两个重要的例外：
 
         * `data` is _not_ a DataFrame, but a custom structure
           that serves customized numpy arrays for reasons of performance
           and convenience. Besides OHLCV columns, `.index` and length,
           it offers `.pip` property, the smallest price unit of change.
+
+        * data 不是 DataFrame，而是一个自定义结构，
+          它提供了为了性能和便利性定制的 numpy 数组。
+          除了 OHLCV 列、.index 和长度之外，它还提供了 .pip 属性，
+          这是价格变动的最小单位。
+
         * Within `backtesting.backtesting.Strategy.init`, `data` arrays
           are available in full length, as passed into
           `backtesting.backtesting.Backtest.__init__`
@@ -259,10 +314,39 @@ class Strategy(metaclass=ABCMeta):
           `backtesting.backtesting.Backtest` internally),
           the last array value (e.g. `data.Close[-1]`)
           is always the _most recent_ value.
+
+        * 在 backtesting.backtesting.Strategy.init 中，
+          data 数组的长度是完整的，
+          就像传入 backtesting.backtesting.Backtest.__init__ 一样（用于预计算指标等）。
+          然而，在 backtesting.backtesting.Strategy.next 中，
+          data 数组的长度仅限于当前迭代，模拟逐渐揭示的价格点。
+          在每次调用 backtesting.backtesting.Strategy.next 时（由 backtesting.backtesting.Backtest 内部迭代调用），
+          最后一个数组值（例如 data.Close[-1]）总是最新的值。
+
+          注解：（from gpt4）
+          这段话描述的是在使用 backtesting.py 这个库时，如何在策略开发中处理数据数组的不同场景。具体来说：
+          1. 在策略初始化时 (Strategy.init 方法)：
+              当你在初始化你的交易策略时，你可以访问完整长度的 data 数组。
+              这意味着所有历史数据在策略开始时就已经可用了，
+              这对于预计算指标（如移动平均线、相对强弱指数等）非常有用。
+          2. 在策略执行过程中 (Strategy.next 方法)：
+              每次调用 next 方法时，data 数组的长度只包含到当前迭代的数据。
+              这模拟了在实际交易中逐步获得新的价格信息的情况，即每次只能看到最新的价格点，
+              而不是一开始就知道未来的价格走势。
+              在这个方法中，数组的最后一个值（例如，data.Close[-1] 表示最新的收盘价）总是最新的市场价格。
+              这反映了在实时交易中，策略总是基于最新的市场数据来做出决策。
+              简而言之，这个描述说明了如何在策略的不同阶段使用历史数据：一开始可以访问全部历史数据来设定策略参数，
+              而在实际运行策略时，数据会像实际市场操作一样逐步提供，
+              以模拟真实交易环境。这种处理方式帮助模拟策略在实时变化的市场中的表现。
+
         * If you need data arrays (e.g. `data.Close`) to be indexed
           **Pandas series**, you can call their `.s` accessor
           (e.g. `data.Close.s`). If you need the whole of data
           as a **DataFrame**, use `.df` accessor (i.e. `data.df`).
+
+        * 如果你需要将数据数组（例如 data.Close）索引为 Pandas序列，
+          你可以调用它们的 .s 访问器（例如 data.Close.s）。
+          如果你需要将整个数据作为一个 DataFrame，使用 .df 访问器（即 data.df）。
         """
         return self._data
 
