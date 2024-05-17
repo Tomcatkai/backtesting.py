@@ -398,6 +398,10 @@ class Position:
     `backtesting.backtesting.Strategy.position` within
     `backtesting.backtesting.Strategy.next`.
     Can be used in boolean contexts, e.g.
+    当前持有的资产头寸，可在
+    “backtesting.backtesting.Strategy.next”
+    中作为“backtesting.backtesting.Strategy.position”使用。
+    可用于布尔语境，例如
 
         if self.position:
             ...  # we have a position, either long or short
@@ -410,17 +414,30 @@ class Position:
 
     @property
     def size(self) -> float:
-        """Position size in units of asset. Negative if position is short."""
+        """
+        Position size in units of asset. Negative if position is short.
+
+        以资产单位表示的头寸规模。如果仓位为空头，则为负数
+
+        """
         return sum(trade.size for trade in self.__broker.trades)
 
     @property
     def pl(self) -> float:
-        """Profit (positive) or loss (negative) of the current position in cash units."""
+        """
+        Profit (positive) or loss (negative) of the current position in cash units.
+
+        以现金单位表示的当前头寸的利润（正）或亏损（负）。
+        """
         return sum(trade.pl for trade in self.__broker.trades)
 
     @property
     def pl_pct(self) -> float:
-        """Profit (positive) or loss (negative) of the current position in percent."""
+        """
+        Profit (positive) or loss (negative) of the current position in percent.
+
+        当前头寸的利润（正）或亏损（负），以百分比表示。
+        """
         weights = np.abs([trade.size for trade in self.__broker.trades])
         weights = weights / weights.sum()
         pl_pcts = np.array([trade.pl_pct for trade in self.__broker.trades])
@@ -428,17 +445,27 @@ class Position:
 
     @property
     def is_long(self) -> bool:
-        """True if the position is long (position size is positive)."""
+        """
+        True if the position is long (position size is positive).
+
+        如果仓位为多头（仓位大小为正数），则为 True。
+        """
         return self.size > 0
 
     @property
     def is_short(self) -> bool:
-        """True if the position is short (position size is negative)."""
+        """
+        True if the position is short (position size is negative).
+
+        如果仓位为空头（仓位大小为负数），则为 True。
+        """
         return self.size < 0
 
     def close(self, portion: float = 1.):
         """
         Close portion of position by closing `portion` of each active trade. See `Trade.close`.
+
+        通过关闭每个活跃交易的“portion”来关闭部分头寸。请参阅“Trade.close”。
         """
         for trade in self.__broker.trades:
             trade.close(portion)
@@ -462,6 +489,13 @@ class Order:
     cancel it and place a new one instead.
 
     All placed orders are [Good 'Til Canceled].
+
+    通过“Strategy.buy（）”和“Strategy.sell（）”下新订单。
+    通过“Strategy.orders”查询现有订单。
+    当订单被执行或[成交 filled]时，它会导致“交易 Trade”。
+    如果您希望修改已下订单但尚未成交订单的各个方面，
+    请取消该订单并改为下新订单。
+    所有下达的订单都是 [Good 'Til Canceled]。
 
     [filled]: https://www.investopedia.com/terms/f/fill.asp
     [Good 'Til Canceled]: https://www.investopedia.com/terms/g/gtc.asp
@@ -524,6 +558,13 @@ class Order:
         If size is a value between 0 and 1, it is interpreted as a fraction of current
         available liquidity (cash plus `Position.pl` minus used margin).
         A value greater than or equal to 1 indicates an absolute number of units.
+
+        订单大小（空头订单为负数）。
+
+        如果 size 是介于 0 和 1 之间的值，
+        则将其解释为当前可用流动性的一小部分
+        （现金加上“Position.pl”减去已用保证金）。
+        大于或等于 1 的值表示单位的绝对数。
         """
         return self.__size
 
@@ -532,6 +573,8 @@ class Order:
         """
         Order limit price for [limit orders], or None for [market orders],
         which are filled at next available price.
+
+        [限价单]的限价 或[市价单]的None，以下一个可用价格成交。
 
         [limit orders]: https://www.investopedia.com/terms/l/limitorder.asp
         [market orders]: https://www.investopedia.com/terms/m/marketorder.asp
@@ -544,6 +587,9 @@ class Order:
         Order stop price for [stop-limit/stop-market][_] order,
         otherwise None if no stop was set, or the stop price has already been hit.
 
+        [stop-limitstop-market][_] 订单的止损价格，
+        否则如果没有设置止损，或者止损价格已经达到，则为 None。
+
         [_]: https://www.investopedia.com/terms/s/stoporder.asp
         """
         return self.__stop_price
@@ -554,6 +600,10 @@ class Order:
         A stop-loss price at which, if set, a new contingent stop-market order
         will be placed upon the `Trade` following this order's execution.
         See also `Trade.sl`.
+
+        一个止损价格，如果设置了止损价格，
+        则在执行该订单后，将对“交易”下达新的或有止损市价订单。
+        另请参阅“Trade.sl”。
         """
         return self.__sl_price
 
@@ -563,6 +613,10 @@ class Order:
         A take-profit price at which, if set, a new contingent limit order
         will be placed upon the `Trade` following this order's execution.
         See also `Trade.tp`.
+
+        一个止盈价格，如果设定了止盈价格，
+        则在该订单执行后，将对“交易”下达新的或有限价订单。
+        另请参阅“Trade.tp”。
         """
         return self.__tp_price
 
@@ -575,6 +629,8 @@ class Order:
         """
         Arbitrary value (such as a string) which, if set, enables tracking
         of this order and the associated `Trade` (see `Trade.tag`).
+
+        任意值（例如字符串），如果设置了该值，则可以跟踪此订单和相关的“Trade”（参见“Trade.tag”）。
         """
         return self.__tag
 
@@ -584,12 +640,20 @@ class Order:
 
     @property
     def is_long(self):
-        """True if the order is long (order size is positive)."""
+        """
+        True if the order is long (order size is positive).
+
+        如果订单是long（订单大小为正数），则为 True。
+        """
         return self.__size > 0
 
     @property
     def is_short(self):
-        """True if the order is short (order size is negative)."""
+        """
+        True if the order is short (order size is negative).
+
+        如果订单是short（订单大小为负数），则为 True。
+        """
         return self.__size < 0
 
     @property
@@ -599,7 +663,11 @@ class Order:
         placed upon an active trade. Remaining contingent orders are canceled when
         their parent `Trade` is closed.
 
+        适用于[contingent 或有]订单，即在活跃交易中下达的[OCO]止损和止盈等级订单。当其父 Trade 关闭时，其余的挂单会被取消。
+
         You can modify contingent orders through `Trade.sl` and `Trade.tp`.
+        你可以通过 Trade.sl 和 Trade.tp 修改挂单。
+
 
         [contingent]: https://www.investopedia.com/terms/c/contingentorder.asp
         [OCO]: https://www.investopedia.com/terms/o/oco.asp
@@ -611,6 +679,9 @@ class Trade:
     """
     When an `Order` is filled, it results in an active `Trade`.
     Find active trades in `Strategy.trades` and closed, settled trades in `Strategy.closed_trades`.
+
+    当一个 Order 被执行时，它会生成一个活跃的 Trade。
+    在 Strategy.trades 中找到活跃的交易，在 Strategy.closed_trades 中找到已关闭和结算的交易。
     """
     def __init__(self, broker: '_Broker', size: int, entry_price: float, entry_bar, tag):
         self.__broker = broker
@@ -637,7 +708,11 @@ class Trade:
         return copy(self)._replace(**kwargs)
 
     def close(self, portion: float = 1.):
-        """Place new `Order` to close `portion` of the trade at next market price."""
+        """
+        Place new `Order` to close `portion` of the trade at next market price.
+
+        下一个市场价格来平仓部分的交易。
+        """
         assert 0 < portion <= 1, "portion must be a fraction between 0 and 1"
         size = copysign(max(1, round(abs(self.__size) * portion)), -self.__size)
         order = Order(self.__broker, size, parent_trade=self, tag=self.__tag)
@@ -647,12 +722,20 @@ class Trade:
 
     @property
     def size(self):
-        """Trade size (volume; negative for short trades)."""
+        """
+        Trade size (volume; negative for short trades).
+
+        交易量（头寸大小；做空交易时为负）。
+        """
         return self.__size
 
     @property
     def entry_price(self) -> float:
-        """Trade entry price."""
+        """
+        Trade entry price.
+
+        交易入场价格。
+        """
         return self.__entry_price
 
     @property
