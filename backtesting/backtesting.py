@@ -740,12 +740,20 @@ class Trade:
 
     @property
     def exit_price(self) -> Optional[float]:
-        """Trade exit price (or None if the trade is still active)."""
+        """
+        Trade exit price (or None if the trade is still active).
+
+        交易退出价格（如果交易仍在进行中，则为 None）。
+        """
         return self.__exit_price
 
     @property
     def entry_bar(self) -> int:
-        """Candlestick bar index of when the trade was entered."""
+        """
+        Candlestick bar index of when the trade was entered.
+
+        交易进入时的K线柱索引。
+        """
         return self.__entry_bar
 
     @property
@@ -753,6 +761,8 @@ class Trade:
         """
         Candlestick bar index of when the trade was exited
         (or None if the trade is still active).
+
+        交易退出时的K线柱索引（如果交易仍在进行中，则为 None）。
         """
         return self.__exit_bar
 
@@ -766,6 +776,10 @@ class Trade:
         logic / subgroup analysis.
 
         See also `Order.tag`.
+
+        从开启此交易的 Order 继承的标签值。
+        这可以用来追踪交易并应用条件逻辑/子组分析。
+        另见 Order.tag。
         """
         return self.__tag
 
@@ -781,41 +795,69 @@ class Trade:
 
     @property
     def entry_time(self) -> Union[pd.Timestamp, int]:
-        """Datetime of when the trade was entered."""
+        """
+        Datetime of when the trade was entered.
+
+        交易进入的日期和时间。
+        """
         return self.__broker._data.index[self.__entry_bar]
 
     @property
     def exit_time(self) -> Optional[Union[pd.Timestamp, int]]:
-        """Datetime of when the trade was exited."""
+        """
+        Datetime of when the trade was exited.
+
+        交易退出的日期和时间。
+        """
         if self.__exit_bar is None:
             return None
         return self.__broker._data.index[self.__exit_bar]
 
     @property
     def is_long(self):
-        """True if the trade is long (trade size is positive)."""
+        """
+        True if the trade is long (trade size is positive).
+
+        如果交易是多头（交易规模为正），则为True。
+        """
         return self.__size > 0
 
     @property
     def is_short(self):
-        """True if the trade is short (trade size is negative)."""
+        """
+        True if the trade is short (trade size is negative).
+
+        如果交易是空头（交易规模为负数），则为 True。
+        """
         return not self.is_long
 
     @property
     def pl(self):
-        """Trade profit (positive) or loss (negative) in cash units."""
+        """
+        Trade profit (positive) or loss (negative) in cash units.
+
+        以现金单位交易利润（正）或亏损（负）。
+        """
         price = self.__exit_price or self.__broker.last_price
         return self.__size * (price - self.__entry_price)
 
     @property
     def pl_pct(self):
-        """Trade profit (positive) or loss (negative) in percent."""
+        """
+        Trade profit (positive) or loss (negative) in percent.
+
+        交易利润（正数）或损失（负数）的百分比。
+        """
         price = self.__exit_price or self.__broker.last_price
         return copysign(1, self.__size) * (price / self.__entry_price - 1)
 
     @property
     def value(self):
-        """Trade total value in cash (volume × price)."""
+        """
+        Trade total value in cash (volume × price).
+
+        交易的总价值（头寸大小 × 价格）。
+        """
         price = self.__exit_price or self.__broker.last_price
         return abs(self.__size) * price
 
@@ -829,6 +871,12 @@ class Trade:
         This variable is writable. By assigning it a new price value,
         you create or modify the existing SL order.
         By assigning it `None`, you cancel it.
+
+        止损价格，用于关闭交易。
+
+        这个变量是可写的。通过赋予一个新的价格值，
+        你可以创建或修改现有的止损订单。
+        通过赋值为 None，你可以取消它。
         """
         return self.__sl_order and self.__sl_order.stop
 
@@ -844,6 +892,11 @@ class Trade:
         This property is writable. By assigning it a new price value,
         you create or modify the existing TP order.
         By assigning it `None`, you cancel it.
+
+        获利平仓价格，用于关闭交易。
+        这个属性是可写的。通过赋予一个新的价格值，
+        你可以创建或修改现有的获利平仓订单。
+        通过赋值为 None，你可以取消它。
         """
         return self.__tp_order and self.__tp_order.limit
 
@@ -900,6 +953,8 @@ class _Broker:
                   trade: Optional[Trade] = None):
         """
         Argument size indicates whether the order is long or short
+
+        参数 size 表示订单是做多还是做空。
         """
         size = float(size)
         stop = stop and float(stop)
@@ -942,13 +997,19 @@ class _Broker:
 
     @property
     def last_price(self) -> float:
-        """ Price at the last (current) close. """
+        """
+         Price at the last (current) close.
+
+         最后（当前）收盘价。
+        """
         return self._data.Close[-1]
 
     def _adjusted_price(self, size=None, price=None) -> float:
         """
         Long/short `price`, adjusted for commisions.
         In long positions, the adjusted price is a fraction higher, and vice versa.
+
+        经手续费调整后的做多/做空价格。在做多头寸时，调整后的价格略高，反之亦然。
         """
         return (price or self.last_price) * (1 + copysign(self._commission, size))
 
@@ -1183,10 +1244,15 @@ class Backtest:
     Backtest a particular (parameterized) strategy
     on particular data.
 
+    对特定数据回测特定（参数化的）策略。
+
     Upon initialization, call method
     `backtesting.backtesting.Backtest.run` to run a backtest
     instance, or `backtesting.backtesting.Backtest.optimize` to
     optimize it.
+
+    在初始化时，调用方法 backtesting.backtesting.Backtest.run 来运行一个回测实例，
+    或者调用 backtesting.backtesting.Backtest.optimize 来优化它。
     """
     def __init__(self,
                  data: pd.DataFrame,
@@ -1202,10 +1268,16 @@ class Backtest:
         """
         Initialize a backtest. Requires data and a strategy to test.
 
+        初始化一个回测。需要数据和一个策略进行测试。
+
         `data` is a `pd.DataFrame` with columns:
         `Open`, `High`, `Low`, `Close`, and (optionally) `Volume`.
         If any columns are missing, set them to what you have available,
         e.g.
+
+        data 是一个 pd.DataFrame，包含以下列：
+        Open（开盘价），High（最高价），Low（最低价），Close（收盘价），以及（可选的）Volume（成交量）。
+        如果缺少任何列，可以根据可用的数据进行设置，例如：
 
             df['Open'] = df['High'] = df['Low'] = df['Close']
 
@@ -1214,10 +1286,18 @@ class Backtest:
         DataFrame index can be either a datetime index (timestamps)
         or a monotonic range index (i.e. a sequence of periods).
 
+        传递的数据框可以包含策略可能使用的额外列（例如情绪信息）。
+        DataFrame索引可以是日期时间索引（时间戳）
+        或单调范围索引（即一系列周期）。
+
         `strategy` is a `backtesting.backtesting.Strategy`
         _subclass_ (not an instance).
 
+        strategy 是一个 backtesting.backtesting.Strategy 的_子类_（不是实例）。
+
         `cash` is the initial cash to start with.
+
+        cash 是开始时的初始现金。
 
         `commission` is the commission ratio. E.g. if your broker's commission
         is 1% of trade value, set commission to `0.01`. Note, if you wish to
@@ -1225,22 +1305,39 @@ class Backtest:
         the commission, e.g. set it to `0.0002` for commission-less forex
         trading where the average spread is roughly 0.2‰ of asking price.
 
+        commission 是佣金比率。例如，如果你的经纪人的佣金是交易价值的1%，
+        则将佣金设置为 0.01。注意，如果你想考虑买卖差价，
+        可以通过增加佣金来近似处理，例如对于平均点差大约为询价的0.2‰的无佣金外汇交易，
+        将其设置为 0.0002。
+
         `margin` is the required margin (ratio) of a leveraged account.
         No difference is made between initial and maintenance margins.
         To run the backtest using e.g. 50:1 leverge that your broker allows,
         set margin to `0.02` (1 / leverage).
 
+        margin 是杠杆账户所需的保证金（比率）。
+        不区分初始保证金和维持保证金。
+        例如，要使用经纪人允许的50:1杠杆进行回测，将保证金设置为 0.02（1 / 杠杆）。
+
         If `trade_on_close` is `True`, market orders will be filled
         with respect to the current bar's closing price instead of the
         next bar's open.
+
+        如果 trade_on_close 为 True，市场订单将根据当前k线柱的收盘价而非下一k线柱的开盘价成交。
 
         If `hedging` is `True`, allow trades in both directions simultaneously.
         If `False`, the opposite-facing orders first close existing trades in
         a [FIFO] manner.
 
+        如果 hedging 为 True，允许同时进行双向交易。
+        如果为 False，相对方向的订单首先以 FIFO 方式关闭现有交易。
+
         If `exclusive_orders` is `True`, each new order auto-closes the previous
         trade/position, making at most a single trade (long or short) in effect
         at each time.
+
+        如果 exclusive_orders 为 True，每一个新订单自动关闭之前的交易/头寸，
+        使得在每个时间点上最多只有一个交易（做多或做空）有效。
 
         [FIFO]: https://www.investopedia.com/terms/n/nfa-compliance-rule-2-43b.asp
         """
@@ -1305,40 +1402,44 @@ class Backtest:
         """
         Run the backtest. Returns `pd.Series` with results and statistics.
 
+        运行回测。返回带有结果和统计数据的 pd.Series。
+
         Keyword arguments are interpreted as strategy parameters.
 
+        关键字参数被解释为策略参数。
+
             >>> Backtest(GOOG, SmaCross).run()
-            Start                     2004-08-19 00:00:00
-            End                       2013-03-01 00:00:00
-            Duration                   3116 days 00:00:00
-            Exposure Time [%]                     93.9944
-            Equity Final [$]                      51959.9
-            Equity Peak [$]                       75787.4
-            Return [%]                            419.599
-            Buy & Hold Return [%]                 703.458
-            Return (Ann.) [%]                      21.328
-            Volatility (Ann.) [%]                 36.5383
-            Sharpe Ratio                         0.583718
-            Sortino Ratio                         1.09239
-            Calmar Ratio                         0.444518
-            Max. Drawdown [%]                    -47.9801
-            Avg. Drawdown [%]                    -5.92585
-            Max. Drawdown Duration      584 days 00:00:00
-            Avg. Drawdown Duration       41 days 00:00:00
-            # Trades                                   65
-            Win Rate [%]                          46.1538
-            Best Trade [%]                         53.596
-            Worst Trade [%]                      -18.3989
-            Avg. Trade [%]                        2.35371
-            Max. Trade Duration         183 days 00:00:00
-            Avg. Trade Duration          46 days 00:00:00
-            Profit Factor                         2.08802
-            Expectancy [%]                        8.79171
-            SQN                                  0.916893
-            Kelly Criterion                        0.6134
-            _strategy                            SmaCross
-            _equity_curve                           Eq...
-            _trades                       Size  EntryB...
+            Start                       开始时间                            2004-08-19 00:00:00
+            End                         结束时间                            2013-03-01 00:00:00
+            Duration                    持续时间                            3116 days 00:00:00
+            Exposure Time [%]           暴露时间百分比                       93.9944
+            Equity Final [$]            最终资本（美元）                     51959.9
+            Equity Peak [$]             最高资本峰值（美元）                  75787.4
+            Return [%]                  回报率百分比                        419.599
+            Buy & Hold Return [%]       买入并持有回报率百分比                703.458
+            Return (Ann.) [%]           年化回报率百分比                     21.328
+            Volatility (Ann.) [%]       年化波动率百分比                     36.5383
+            Sharpe Ratio                夏普比率                            0.583718
+            Sortino Ratio               索提诺比率                          1.09239
+            Calmar Ratio                卡尔玛比率                          0.444518
+            Max. Drawdown [%]           最大回撤百分比                       -47.9801
+            Avg. Drawdown [%]           平均回撤百分比                       -5.92585
+            Max. Drawdown Duration      最大回撤持续时间                     584 days 00:00:00
+            Avg. Drawdown Duration      平均回撤持续时间                     41 days 00:00:00
+            # Trades                    交易次数                           65
+            Win Rate [%]                胜率百分比                         46.1538
+            Best Trade [%]              最佳交易百分比                      53.596
+            Worst Trade [%]             最差交易百分比                      -18.3989
+            Avg. Trade [%]              平均交易百分比                      2.35371
+            Max. Trade Duration         最长交易持续时间                    183 days 00:00:00
+            Avg. Trade Duration         平均交易持续时间                    46 days 00:00:00
+            Profit Factor               盈利因子                           2.08802
+            Expectancy [%]              预期收益百分比                      8.79171
+            SQN                         系统质量数（System Quality Number） 0.916893
+            Kelly Criterion             凯利准则                           0.6134
+            _strategy                   策略                              SmaCross
+            _equity_curve               资本曲线                           Eq...
+            _trades                     交易详情                           Size  EntryB...
             dtype: object
 
         .. warning::
@@ -1347,6 +1448,11 @@ class Backtest:
             begin on bar 201. The actual length of delay is equal to the lookback
             period of the `Strategy.I` indicator which lags the most.
             Obviously, this can affect results.
+
+        .. 警告::
+            对于不同的策略参数，你可能会获得不同的结果。
+            例如，如果你使用50和200根K线的SMA，交易模拟将从第201根K线开始。
+            实际的延迟长度等于最多滞后的 Strategy.I 指标的回望期。显然，这会影响结果。
         """
         data = _Data(self._data.copy(deep=False))
         broker: _Broker = self._broker(data=data)
@@ -1424,18 +1530,31 @@ class Backtest:
         Optimize strategy parameters to an optimal combination.
         Returns result `pd.Series` of the best run.
 
+        优化策略参数以找到最佳组合。
+        返回最佳运行的结果 pd.Series。
+
         `maximize` is a string key from the
         `backtesting.backtesting.Backtest.run`-returned results series,
         or a function that accepts this series object and returns a number;
         the higher the better. By default, the method maximizes
         Van Tharp's [System Quality Number](https://google.com/search?q=System+Quality+Number).
 
+        maximize 是一个字符串键，
+        来自 backtesting.backtesting.Backtest.run 返回的结果序列，
+        或者是一个接受此序列对象并返回一个数字的函数；数字越高越好。
+        默认情况下，该方法最大化 Van Tharp 的系统质量数。
+
         `method` is the optimization method. Currently two methods are supported:
+
+        method 是优化方法。目前支持两种方法：
 
         * `"grid"` which does an exhaustive (or randomized) search over the
           cartesian product of parameter combinations, and
         * `"skopt"` which finds close-to-optimal strategy parameters using
           [model-based optimization], making at most `max_tries` evaluations.
+
+        * "grid"，它在参数组合的笛卡尔乘积上进行详尽（或随机化）搜索，
+        * "skopt"，它使用基于模型的优化找到接近最优的策略参数，在最多 max_tries 次评估中完成。
 
         [model-based optimization]: \
             https://scikit-optimize.github.io/stable/auto_examples/bayesian-optimization.html
@@ -1448,10 +1567,20 @@ class Backtest:
         of evaluations. If unspecified (default), grid search is exhaustive,
         whereas for `method="skopt"`, `max_tries` is set to 200.
 
+        max_tries 是要执行的策略运行的最大次数。
+        如果 method="grid"，这会导致随机化网格搜索。
+        如果 max_tries 是 (0, 1] 之间的浮点数，这将设置运行次数大约为完整网格空间的那个分数。
+        如果是整数，它表示评估的绝对最大次数。
+        如果未指定（默认），网格搜索是详尽的，
+        而对于 method="skopt"，max_tries 设置为 200。
+
         `constraint` is a function that accepts a dict-like object of
         parameters (with values) and returns `True` when the combination
         is admissible to test with. By default, any parameters combination
         is considered admissible.
+
+        constraint 是一个函数，它接受一个包含参数（及其值）的类字典对象，并在组合可接受测试时返回 True。
+        默认情况下，任何参数组合都被视为可接受的。
 
         If `return_heatmap` is `True`, besides returning the result
         series, an additional `pd.Series` is returned with a multiindex
@@ -1459,11 +1588,19 @@ class Backtest:
         inspected or projected onto 2D to plot a heatmap
         (see `backtesting.lib.plot_heatmaps()`).
 
+        如果 return_heatmap 为 True，
+        除了返回结果序列外，还会返回一个带有所有可接受参数组合多重索引的额外 pd.Series，
+        可以进一步检查或投影到 2D 上绘制热图（见 backtesting.lib.plot_heatmaps()）。
+
         If `return_optimization` is True and `method = 'skopt'`,
         in addition to result series (and maybe heatmap), return raw
         [`scipy.optimize.OptimizeResult`][OptimizeResult] for further
         inspection, e.g. with [scikit-optimize]\
         [plotting tools].
+
+        如果 return_optimization 为 True 且 method = 'skopt'，
+        除了结果序列（可能还有热图）之外，
+        还会返回原始的scipy.optimize.OptimizeResult以供进一步检查，例如使用scikit-optimize。
 
         [OptimizeResult]: \
             https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.OptimizeResult.html
@@ -1473,16 +1610,22 @@ class Backtest:
         If you want reproducible optimization results, set `random_state`
         to a fixed integer random seed.
 
+        如果你想要可重现的优化结果，请将 random_state 设置为固定的整数随机种子。
+
         Additional keyword arguments represent strategy arguments with
         list-like collections of possible values. For example, the following
         code finds and returns the "best" of the 7 admissible (of the
         9 possible) parameter combinations:
+
+        其他关键字参数表示策略参数，带有可能值的列表式集合。
+        例如，以下代码找到并返回 9 个可能参数组合中的 7 个可接受的“最佳”组合：
 
             backtest.optimize(sma1=[5, 10, 15], sma2=[10, 20, 40],
                               constraint=lambda p: p.sma1 < p.sma2)
 
         .. TODO::
             Improve multiprocessing/parallel execution on Windos with start method 'spawn'.
+            改进在 Windows 上使用启动方法 'spawn' 的多进程/并行执行。
         """
         if not kwargs:
             raise ValueError('Need some strategy parameters to optimize')
@@ -1729,46 +1872,77 @@ class Backtest:
         """
         Plot the progression of the last backtest run.
 
+        绘制最后一次回测运行的进展。
+
         If `results` is provided, it should be a particular result
         `pd.Series` such as returned by
         `backtesting.backtesting.Backtest.run` or
         `backtesting.backtesting.Backtest.optimize`, otherwise the last
         run's results are used.
 
+        如果提供了 results，它应该是一个特定的结果 pd.Series，
+        例如由 backtesting.backtesting.Backtest.run 或
+         backtesting.backtesting.Backtest.optimize 返回的结果，
+        否则将使用最后一次运行的结果。
+
         `filename` is the path to save the interactive HTML plot to.
         By default, a strategy/parameter-dependent file is created in the
         current working directory.
+        filename 是保存交互式HTML图表的路径。
+        默认情况下，在当前工作目录中创建一个依策略/参数依赖的文件。
 
         `plot_width` is the width of the plot in pixels. If None (default),
         the plot is made to span 100% of browser width. The height is
         currently non-adjustable.
 
+        plot_width 是图表的像素宽度。如果为 None（默认），图表将占满浏览器的100%宽度。目前高度不可调。
+
         If `plot_equity` is `True`, the resulting plot will contain
         an equity (initial cash plus assets) graph section. This is the same
         as `plot_return` plus initial 100%.
+
+        如果 plot_equity 为 True，结果图表将包含一个资产（初始现金加上资产）图表部分。
+        这与 plot_return 加上初始的100%相同。
 
         If `plot_return` is `True`, the resulting plot will contain
         a cumulative return graph section. This is the same
         as `plot_equity` minus initial 100%.
 
+        如果 plot_return 为 True，结果图表将包含一个累积回报图表部分。
+        这与 plot_equity 减去初始的100%相同。
+
         If `plot_pl` is `True`, the resulting plot will contain
         a profit/loss (P/L) indicator section.
+
+        如果 plot_pl 为 True，结果图表将包含一个盈亏（P/L）指标部分。
 
         If `plot_volume` is `True`, the resulting plot will contain
         a trade volume section.
 
+        如果 plot_volume 为 True，结果图表将包含一个交易量部分。
+
         If `plot_drawdown` is `True`, the resulting plot will contain
         a separate drawdown graph section.
 
+        如果 plot_drawdown 为 True，结果图表将包含一个单独的回撤图表部分。
+
         If `plot_trades` is `True`, the stretches between trade entries
         and trade exits are marked by hash-marked tractor beams.
+
+        如果 plot_trades 为 True，交易进入和退出之间的时间段将由带哈希标记的牵引光束标记。
 
         If `smooth_equity` is `True`, the equity graph will be
         interpolated between fixed points at trade closing times,
         unaffected by any interim asset volatility.
 
+        如果 smooth_equity 为 True，
+        资产图表将在交易关闭时间的固定点之间插值，
+        不受任何中间资产波动的影响。
+
         If `relative_equity` is `True`, scale and label equity graph axis
         with return percent, not absolute cash-equivalent values.
+
+        如果 relative_equity 为 True，将以回报百分比而非绝对现金等值来缩放和标记资产图表轴。
 
         If `superimpose` is `True`, superimpose larger-timeframe candlesticks
         over the original candlestick chart. Default downsampling rule is:
@@ -1778,6 +1952,15 @@ class Backtest:
         such as `'5T'` or `'5min'`, in which case this frequency will be
         used to superimpose.
         Note, this only works for data with a datetime index.
+
+        如果 superimpose 为 True，在原始K线图表上叠加更大时间框架的K线。
+        默认的降采样规则是：对于日数据为月，对于小时数据为日，
+        对于分钟数据为小时，对于（亚）秒数据为分钟。
+        superimpose 也可以是一个有效的 Pandas 偏移字符串，
+        比如 '5T' 或 '5min'，在这种情况下将使用此频率来叠加。
+        注意，这只适用于带有日期时间索引的数据。
+
+
 
         If `resample` is `True`, the OHLC data is resampled in a way that
         makes the upper number of candles for Bokeh to plot limited to 10_000.
@@ -1791,8 +1974,22 @@ class Backtest:
         used to resample, overriding above numeric limitation.
         Note, all this only works for data with a datetime index.
 
+        如果 resample 为 True，OHLC 数据会被重采样，
+        使得Bokeh绘图的蜡烛数量上限为10,000。
+        在数据过多的情况下，
+        这可能提高图表的交互性能并避免浏览器的
+         Javascript Error: Maximum call stack size exceeded 或类似错误。
+        同样，资产与下跌曲线和个别交易数据也会被合理地聚合。
+        resample 也可以是一个 Pandas 偏移字符串，
+        比如 '5T' 或 '5min'，在这种情况下将使用此频率来重采样，覆盖上述数字限制。
+        注意，所有这些只适用于带有日期时间索引的数据。
+
+
+
         If `reverse_indicators` is `True`, the indicators below the OHLC chart
         are plotted in reverse order of declaration.
+
+        如果 reverse_indicators 为 True，在OHLC图表下方的指标将按声明的相反顺序绘制。
 
         [Pandas offset string]: \
             https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
@@ -1802,8 +1999,12 @@ class Backtest:
         If `show_legend` is `True`, the resulting plot graphs will contain
         labeled legends.
 
+        如果 show_legend 为 True，结果图表将包含标记的图例。
+
         If `open_browser` is `True`, the resulting `filename` will be
         opened in the default web browser.
+
+        如果 open_browser 为 True，结果文件 filename 将在默认网页浏览器中打开。
         """
         if results is None:
             if self._results is None:
