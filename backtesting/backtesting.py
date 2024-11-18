@@ -24,17 +24,14 @@ import numpy as np
 import pandas as pd
 from numpy.random import default_rng
 
+"""
+# 尝试导入 tqdm 以显示进度条；如果未安装，则定义一个占位的 _tqdm 函数，保证代码正常运行
+"""
 try:
     from tqdm.auto import tqdm as _tqdm
-    _tqdm = partial(_tqdm, leave=False) # leave=False 参数指示 tqdm 在过程完成后从输出中删除进度条
+
+    _tqdm = partial(_tqdm, leave=False)  # leave=False 参数指示 tqdm 在过程完成后从输出中删除进度条
 except ImportError:
-    """
-    如果导入失败（可能是因为 tqdm 未安装），
-    则该 except 块定义了一个简单的函数，
-    该函数 _tqdm 仅返回给定的序列而不对其进行修改。
-    此函数被设计为具有相同的 tqdm 接口（它接受序列和关键字参数），
-    但不执行任何操作，从而防止在不可用时 tqdm 出现错误。
-    """
     def _tqdm(seq, **_):
         return seq
 
@@ -42,6 +39,9 @@ from ._plotting import plot  # noqa: I001
 from ._stats import compute_stats
 from ._util import _as_str, _Indicator, _Data, try_
 
+"""
+使用 __pdoc__ 控制文档生成，排除指定类的 __init__ 方法不包含在生成的文档中
+"""
 __pdoc__ = {
     'Strategy.__init__': False,
     'Order.__init__': False,
@@ -49,25 +49,40 @@ __pdoc__ = {
     'Trade.__init__': False,
 }
 
+"""
+A trading strategy base class. Extend this class and
+override methods
+`backtesting.backtesting.Strategy.init` and
+`backtesting.backtesting.Strategy.next` to define
+your own strategy.
+交易策略基类。继承这个类，并且覆写方法：
+`backtesting.backtesting.Strategy.init` 和
+`backtesting.backtesting.Strategy.next` 来定义
+你自己的策略
+
+gpt：
+Strategy 是一个抽象基类，使用 ABCMeta 元类。这意味着它包含抽象方法，不能直接实例化，必须由子类实现特定方法。
+
+文档字符串提供了类的说明，鼓励用户继承该类并重写 init 和 next 方法来定义自己的策略。
+"""
+
 
 class Strategy(metaclass=ABCMeta):
-    """
-    A trading strategy base class. Extend this class and
-    override methods
-    `backtesting.backtesting.Strategy.init` and
-    `backtesting.backtesting.Strategy.next` to define
-    your own strategy.
-    交易策略基类。继承这个类，并且覆写方法：
-    `backtesting.backtesting.Strategy.init` 和
-    `backtesting.backtesting.Strategy.next` 来定义
-    你自己的策略
-    """
+
+    # 初始化策略对象，接收以下参数：
+    #     broker：经纪人对象，处理交易执行等。
+    #     data：市场数据，通常是价格、成交量等。
+    #     params：策略参数，如移动平均线的周期等。
+    #     初始化一个空的指标列表 self._indicators，用于存储策略中使用的技术指标。
+    #     调用 _check_params 方法，验证并设置策略参数。
     def __init__(self, broker, data, params):
         self._indicators = []
         self._broker: _Broker = broker
         self._data: _Data = data
         self._params = self._check_params(params)
 
+    # __repr__：提供对象的正式字符串表示，通常用于调试。
+    # __str__：提供对象的可读字符串表示，包含类名和参数，方便在打印时查看策略的基本信息。
     def __repr__(self):
         return '<Strategy ' + str(self) + '>'
 
@@ -78,6 +93,14 @@ class Strategy(metaclass=ABCMeta):
             params = '(' + params + ')'
         return f'{self.__class__.__name__}{params}'
 
+    # 参数检查方法
+    # 遍历传入的参数 params，检查策略类是否包含对应的属性。
+    # 如果策略类缺少某个参数，抛出 AttributeError，提示用户需要在类中定义该参数。
+    # 使用 setattr 动态设置策略对象的属性。
+    # ---------------------------------------------------------------
+    # 简短说就是：
+    # 检查传入的params，对应k是否在类中作为属性定义
+    # 没定义就报错，有定义就赋值
     def _check_params(self, params):
         for k, v in params.items():
             if not hasattr(self, k):
@@ -88,6 +111,19 @@ class Strategy(metaclass=ABCMeta):
             setattr(self, k, v)
         return params
 
+    # I 方法用于声明和计算技术指标。
+    # 参数：
+    # func: 用于计算指标的函数，返回一个与数据长度相同的数组。
+    # *args 和 **kwargs: 传递给 func 的参数。
+    # name: 指标名称，可选。
+    # plot, overlay, color, scatter: 用于绘图的参数。
+    # 将计算得到的指标值存储在 self._indicators 列表中。
+    #
+    # 我的理解：
+    # 生成了个名字，
+    # 执行了自定义的indicator func，然后把指标df转成横向np数组，
+    # 校验一下这个np数组和close长度对不对的上，要是要1维2维的，然后再生成一下overlay这个布尔值，
+    # 最后把value构造成Indicator对象，并且拼接到indicators里
     def I(self,  # noqa: E743
           func: Callable, *args,
           name=None, plot=True, overlay=None, color=None, scatter=False,
@@ -143,6 +179,7 @@ class Strategy(metaclass=ABCMeta):
             def init():
                 self.sma = self.I(ta.SMA, self.data.Close, self.n_sma)
         """
+        # 设置name
         if name is None:
             params = ','.join(filter(None, map(_as_str, chain(args, kwargs.values()))))
             func_name = _as_str(func)
@@ -150,20 +187,21 @@ class Strategy(metaclass=ABCMeta):
         else:
             name = name.format(*map(_as_str, args),
                                **dict(zip(kwargs.keys(), map(_as_str, kwargs.values()))))
-
+        # 策略模式  调用自定义indicator func
         try:
             value = func(*args, **kwargs)
         except Exception as e:
             raise RuntimeError(f'Indicator "{name}" error') from e
-
+        # 转np数组并转置
         if isinstance(value, pd.DataFrame):
             value = value.values.T
-
+        # 内存行排列方式
         if value is not None:
             value = try_(lambda: np.asarray(value, order='C'), None)
         is_arraylike = bool(value is not None and value.shape)
 
         # Optionally flip the array if the user returned e.g. `df.values`
+        # 如果行数大于列数，转置数组确保为“横向”格式
         if is_arraylike and np.argmax(value.shape) == 0:
             value = value.T
 
@@ -171,7 +209,7 @@ class Strategy(metaclass=ABCMeta):
             raise ValueError(
                 'Indicators must return (optionally a tuple of) numpy.arrays of same '
                 f'length as `data` (data shape: {self._data.Close.shape}; indicator "{name}" '
-                f'shape: {getattr(value, "shape" , "")}, returned value: {value})')
+                f'shape: {getattr(value, "shape", "")}, returned value: {value})')
 
         if plot and overlay is None and np.issubdtype(value.dtype, np.number):
             x = value / self._data.Close
@@ -231,6 +269,7 @@ class Strategy(metaclass=ABCMeta):
 
     class __FULL_EQUITY(float):  # noqa: N801
         def __repr__(self): return '.9999'
+
     _FULL_EQUITY = __FULL_EQUITY(1 - sys.float_info.epsilon)
 
     def buy(self, *,
@@ -371,10 +410,19 @@ class Strategy(metaclass=ABCMeta):
         return tuple(self._broker.closed_trades)
 
 
+# `_Orders` 是一个内部类，用于管理订单对象，提供过渡期的兼容支持。
+# 仅用于旧版本兼容，未来可能移除。
+#     功能:
+#     1. `cancel`: 批量取消非附属订单（如不依赖止损/止盈的订单）。
+#     2. `__getattr__`: 在访问不存在或已弃用的属性时被触发，抛出错误并提示使用新 API。
+#
+#     注意:
+#     - 这是内部工具类，不建议用户直接使用。
 class _Orders(tuple):
     """
     TODO: remove this class. Only for deprecation.
     """
+
     def cancel(self):
         """Cancel all non-contingent (i.e. SL/TP) orders."""
         for order in self:
@@ -409,6 +457,7 @@ class Position:
     def __init__(self, broker: '_Broker'):
         self.__broker = broker
 
+    # 返回 True 表示有持仓，支持直接用 `if position` 判断持仓状态。
     def __bool__(self):
         return self.size != 0
 
@@ -500,6 +549,7 @@ class Order:
     [filled]: https://www.investopedia.com/terms/f/fill.asp
     [Good 'Til Canceled]: https://www.investopedia.com/terms/g/gtc.asp
     """
+
     def __init__(self, broker: '_Broker',
                  size: float,
                  limit_price: Optional[float] = None,
@@ -683,6 +733,7 @@ class Trade:
     当一个 Order 被执行时，它会生成一个活跃的 Trade。
     在 Strategy.trades 中找到活跃的交易，在 Strategy.closed_trades 中找到已关闭和结算的交易。
     """
+
     def __init__(self, broker: '_Broker', size: int, entry_price: float, entry_bar, tag):
         self.__broker = broker
         self.__size = size
@@ -694,16 +745,19 @@ class Trade:
         self.__tp_order: Optional[Order] = None
         self.__tag = tag
 
+    # <Trade size=交易规模 time=开仓时间-平仓时间 price=开仓价格-平仓价格 pl=盈亏 tag=标签>
     def __repr__(self):
         return f'<Trade size={self.__size} time={self.__entry_bar}-{self.__exit_bar or ""} ' \
                f'price={self.__entry_price}-{self.__exit_price or ""} pl={self.pl:.0f}' \
-               f'{" tag="+str(self.__tag) if self.__tag is not None else ""}>'
+               f'{" tag=" + str(self.__tag) if self.__tag is not None else ""}>'
 
+    # 批量修改对象的私有属性。
     def _replace(self, **kwargs):
         for k, v in kwargs.items():
             setattr(self, f'_{self.__class__.__qualname__}__{k}', v)
         return self
 
+    # 创建对象的副本，并在副本上修改指定的属性。
     def _copy(self, **kwargs):
         return copy(self)._replace(**kwargs)
 
@@ -1254,6 +1308,8 @@ class Backtest:
     在初始化时，调用方法 backtesting.backtesting.Backtest.run 来运行一个回测实例，
     或者调用 backtesting.backtesting.Backtest.optimize 来优化它。
     """
+    # 初始化回测对象：校验输入数据和参数格式，
+    # 将数据、策略和经纪人配置等设置为对象属性，为回测流程做准备。
     def __init__(self,
                  data: pd.DataFrame,
                  strategy: Type[Strategy],
@@ -1354,10 +1410,10 @@ class Backtest:
 
         # Convert index to datetime index
         if (not isinstance(data.index, pd.DatetimeIndex) and
-            not isinstance(data.index, pd.RangeIndex) and
-            # Numeric index with most large numbers
-            (data.index.is_numeric() and
-             (data.index > pd.Timestamp('1975').timestamp()).mean() > .8)):
+                not isinstance(data.index, pd.RangeIndex) and
+                # Numeric index with most large numbers
+                (data.index.is_numeric() and
+                 (data.index > pd.Timestamp('1975').timestamp()).mean() > .8)):
             try:
                 data.index = pd.to_datetime(data.index, infer_datetime_format=True)
             except ValueError:
@@ -1398,6 +1454,7 @@ class Backtest:
         self._strategy = strategy
         self._results: Optional[pd.Series] = None
 
+    # -> pd.Series 表示该方法的返回类型提示为 pd.Series
     def run(self, **kwargs) -> pd.Series:
         """
         Run the backtest. Returns `pd.Series` with results and statistics.
@@ -1408,6 +1465,7 @@ class Backtest:
 
         关键字参数被解释为策略参数。
 
+             `>>>` 表示这是一个可以直接运行的交互式代码示例
             >>> Backtest(GOOG, SmaCross).run()
             Start                       开始时间                            2004-08-19 00:00:00
             End                         结束时间                            2013-03-01 00:00:00
@@ -1524,8 +1582,8 @@ class Backtest:
                  return_optimization: bool = False,
                  random_state: Optional[int] = None,
                  **kwargs) -> Union[pd.Series,
-                                    Tuple[pd.Series, pd.Series],
-                                    Tuple[pd.Series, pd.Series, dict]]:
+    Tuple[pd.Series, pd.Series],
+    Tuple[pd.Series, pd.Series, dict]]:
         """
         Optimize strategy parameters to an optimal combination.
         Returns result `pd.Series` of the best run.
@@ -1756,8 +1814,8 @@ class Backtest:
             return stats
 
         def _optimize_skopt() -> Union[pd.Series,
-                                       Tuple[pd.Series, pd.Series],
-                                       Tuple[pd.Series, pd.Series, dict]]:
+        Tuple[pd.Series, pd.Series],
+        Tuple[pd.Series, pd.Series, dict]]:
             try:
                 from skopt import forest_minimize
                 from skopt.callbacks import DeltaXStopper

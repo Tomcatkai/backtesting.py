@@ -106,6 +106,11 @@ class _Data:
     as a standard `pd.DataFrame` would, except it's not a DataFrame
     and the returned "series" are _not_ `pd.Series` but `np.ndarray`
     for performance reasons.
+
+    数据数组访问器。提供对OHLCV“列”的访问，
+    如同标准的 pd.DataFrame 一样，不过它不是一个DataFrame，
+    且返回的“序列”不是 pd.Series 而是 np.ndarray，
+    出于性能考虑。
     """
     def __init__(self, df: pd.DataFrame):
         self.__df = df
